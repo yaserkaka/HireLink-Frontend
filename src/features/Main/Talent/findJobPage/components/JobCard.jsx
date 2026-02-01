@@ -25,7 +25,7 @@ export default function JobCard({ job, showMatch }) {
 					) : null}
 				</div>
 
-				<h2 className="text-black font-semibold mb-2 text-center">
+				<h2 className="text-black font-semibold mb-2 py-2">
 					{job.title || "Untitled job"}
 				</h2>
 

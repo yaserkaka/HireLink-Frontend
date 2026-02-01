@@ -49,9 +49,9 @@ export default function MyApplications() {
 			<Helmet>
 				<title>My Applications</title>
 			</Helmet>
-			<div className="min-h-screen bg-gray-100">
+			<div className="min-h-stcreen pt-10 bg-gray-100">
 				{/* Filters */}
-				<div className="px-10 mt-6 flex gap-4 relative">
+				{/* <div className="px-10 mt-6 flex gap-4 relative">
 					<div className="relative">
 						<button
 							type="button"
@@ -89,7 +89,7 @@ export default function MyApplications() {
 							</div>
 						)}
 					</div>
-				</div>
+				</div> */}
 
 				{/* Applications List */}
 				<div className="px-10 mt-6 space-y-5">

@@ -213,7 +213,7 @@ export default function TalentProfilePage() {
 			toast.success("Profile Successfully Updated");
 			//setEditMode(null);
 		},
-		// onError: (e) => toast.error(e?.message || "Update failed"),
+
 		onError: (err, _payload, ctx) => {
 			// rollback لو فشل
 			if (ctx?.prev) qc.setQueryData(queryKeys.talentProfile, ctx.prev);
@@ -224,25 +224,165 @@ export default function TalentProfilePage() {
 
 	// skills
 	const [skillDraft, setSkillDraft] = useState("");
+	const [removingSkill, setRemovingSkill] = useState(null); // name
+
+	// const upsertSkillM = useMutation({
+	// 	mutationFn: (name) => upSertTalentSkill({ name, level: "INTERMEDIATE" }),
+	// 	onSuccess: async (res) => {
+	// 		if (res?.ok === false) throw new Error(res?.message || "Skill failed");
+	// 		await qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+	// 		setSkillDraft("");
+	// 	},
+	// 	onError: (e) => toast.error(e?.message || "Skill failed"),
+	// });
+
 	const upsertSkillM = useMutation({
 		mutationFn: (name) => upSertTalentSkill({ name, level: "INTERMEDIATE" }),
-		onSuccess: async (res) => {
-			if (res?.ok === false) throw new Error(res?.message || "Skill failed");
-			await qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+
+		onMutate: async (name) => {
+			const newName = name.trim();
+			if (!newName) return;
+
+			await qc.cancelQueries({ queryKey: queryKeys.talentProfile });
+
+			const prev = qc.getQueryData(queryKeys.talentProfile);
+
+			// optimistic add (avoid duplicates)
+			qc.setQueryData(queryKeys.talentProfile, (old) => {
+				const res = old?.data ?? old;
+				const data = res?.data ?? res;
+				const profile = data?.talentProfile ?? data?.profile ?? data;
+
+				const skills = Array.isArray(profile?.skills) ? profile.skills : [];
+				const exists = skills.some(
+					(s) => (s?.name ?? String(s)).toLowerCase() === newName.toLowerCase(),
+				);
+				if (exists) return old;
+
+				const nextSkills = [
+					...skills,
+					{ name: newName, level: "INTERMEDIATE" },
+				];
+
+				// try to preserve same shape
+				if (old?.data?.data?.talentProfile) {
+					return {
+						...old,
+						data: {
+							...old.data,
+							data: {
+								...old.data.data,
+								talentProfile: {
+									...old.data.data.talentProfile,
+									skills: nextSkills,
+								},
+							},
+						},
+					};
+				}
+				// fallback generic
+				return {
+					...old,
+					data: {
+						...(old?.data ?? {}),
+						data: {
+							...((old?.data ?? {})?.data ?? {}),
+							...profile,
+							skills: nextSkills,
+						},
+					},
+				};
+			});
+
+			// clear input immediately so user feels instant
 			setSkillDraft("");
+
+			return { prev };
 		},
-		onError: (e) => toast.error(e?.message || "Skill failed"),
-	});
-	const removeSkillM = useMutation({
-		mutationFn: (name) => removeTalentSkill({ name }),
-		onSuccess: async (res) => {
-			if (res?.ok === false) throw new Error(res?.message || "Remove failed");
-			await qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+
+		onError: (e, _name, ctx) => {
+			if (ctx?.prev) qc.setQueryData(queryKeys.talentProfile, ctx.prev);
+			toast.error(e?.message || "Skill failed");
 		},
-		onError: (e) => toast.error(e?.message || "Remove failed"),
+
+		onSettled: () => {
+			qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+		},
 	});
 
+	// const removeSkillM = useMutation({
+	// 	mutationFn: (name) => removeTalentSkill({ name }),
+	// 	onSuccess: async (res) => {
+	// 		if (res?.ok === false) throw new Error(res?.message || "Remove failed");
+	// 		await qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+	// 	},
+	// 	onError: (e) => toast.error(e?.message || "Remove failed"),
+	// });
+
 	// languages
+
+	const removeSkillM = useMutation({
+		mutationFn: (name) => removeTalentSkill({ name }),
+
+		onMutate: async (name) => {
+			const label = name.trim();
+			setRemovingSkill(label);
+
+			await qc.cancelQueries({ queryKey: queryKeys.talentProfile });
+			const prev = qc.getQueryData(queryKeys.talentProfile);
+
+			qc.setQueryData(queryKeys.talentProfile, (old) => {
+				const res = old?.data ?? old;
+				const data = res?.data ?? res;
+				const profile = data?.talentProfile ?? data?.profile ?? data;
+
+				const skills = Array.isArray(profile?.skills) ? profile.skills : [];
+				const nextSkills = skills.filter(
+					(s) => (s?.name ?? String(s)) !== label,
+				);
+
+				if (old?.data?.data?.talentProfile) {
+					return {
+						...old,
+						data: {
+							...old.data,
+							data: {
+								...old.data.data,
+								talentProfile: {
+									...old.data.data.talentProfile,
+									skills: nextSkills,
+								},
+							},
+						},
+					};
+				}
+				return {
+					...old,
+					data: {
+						...(old?.data ?? {}),
+						data: {
+							...((old?.data ?? {})?.data ?? {}),
+							...profile,
+							skills: nextSkills,
+						},
+					},
+				};
+			});
+
+			return { prev, label };
+		},
+
+		onError: (e, _name, ctx) => {
+			if (ctx?.prev) qc.setQueryData(queryKeys.talentProfile, ctx.prev);
+			toast.error(e?.message || "Remove failed");
+		},
+
+		onSettled: () => {
+			setRemovingSkill(null);
+			qc.invalidateQueries({ queryKey: queryKeys.talentProfile });
+		},
+	});
+
 	const [langDraft, setLangDraft] = useState("");
 	const upsertLangM = useMutation({
 		mutationFn: (name) =>
@@ -367,7 +507,7 @@ export default function TalentProfilePage() {
 	if (isError)
 		return (
 			<div className="p-6 text-red-600">
-				{String(errorMapper(error) || "Failed to load profile")}
+				{String(error.message || "Failed to load profile")}
 			</div>
 		);
 
@@ -724,29 +864,34 @@ export default function TalentProfilePage() {
 						<button
 							type="button"
 							className="px-4 rounded-xl bg-purple-600 text-white font-semibold disabled:opacity-60"
-							disabled={
-								!skillDraft.trim() ||
-								upsertSkillM.isPending ||
-								upsertSkillM.isLoading
-							}
+							disabled={!skillDraft.trim() || upsertSkillM.isPending}
 							onClick={() => upsertSkillM.mutate(skillDraft.trim())}
 						>
-							Add
+							{upsertSkillM.isPending ? "Saving..." : "Add"}
 						</button>
 					</div>
 
 					<div className="mt-4 flex flex-wrap gap-2">
 						{(profile?.skills || []).map((s) => {
 							const label = s?.name || String(s);
+							const isRemovingThis =
+								removingSkill === label && removeSkillM.isPending;
+
 							return (
 								<div
 									key={label}
 									className="flex items-center gap-2 border rounded-full px-3 py-2"
 								>
-									<span className="text-sm font-semibold">{label}</span>
+									<span className="text-sm font-semibold">
+										{label}{" "}
+										{isRemovingThis ? (
+											<span className="text-xs font-normal">(Removing...)</span>
+										) : null}
+									</span>
 									<button
 										type="button"
 										className="text-red-600 text-sm font-bold"
+										disabled={isRemovingThis}
 										onClick={() => removeSkillM.mutate(label)}
 									>
 										×

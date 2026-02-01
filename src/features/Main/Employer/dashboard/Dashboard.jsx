@@ -3,12 +3,14 @@ import { useMemo, useState } from "react";
 import { Helmet } from "react-helmet";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import headerImage from "../../../../assets/images/layouts/header.svg";
+import Loading from "../../../../components/UI/Loading";
+import { useAuth } from "../../../../hooks/useAuth";
 import { useDeleteEmployerJob } from "../hooks/mutations/useDeleteEmployerJob";
 import { useEmployerJobsQuery } from "../hooks/queries/useEmployerJobsQuery";
 import ApplicationDetailsModal from "./components/ApplicationDetailsModal";
 import JobApplicationsModal from "./components/JobApplicationModal";
 
-const PAGE_SIZE = 10;
+// const PAGE_SIZE = 10;
 
 function StatCard({ icon: Icon, label, value }) {
 	return (
@@ -48,6 +50,8 @@ function TableShell({ title, onSeeMore, children }) {
 }
 
 export default function EmployerDashboard() {
+	const { isAuthReady, currentUser } = useAuth();
+
 	const [searchParams] = useSearchParams();
 	const qFromUrl = searchParams.get("q") ?? "";
 	const q = qFromUrl.trim();
@@ -88,20 +92,12 @@ export default function EmployerDashboard() {
 	/* -------------------- Jobs & Recent Applications queries -------------------- */
 	const jobsQ = useEmployerJobsQuery();
 
-	//const jobs = jobsQ.data ?? [];
 	const jobs = useMemo(() => {
 		const raw = jobsQ?.data?.data ?? jobsQ?.data ?? [];
 		return Array.isArray(raw) ? raw : [];
 	}, [jobsQ]);
 
 	const allJobs = jobs;
-	const visibleJobs = useMemo(() => {
-		const sorted = [...allJobs].sort(
-			(a, b) => new Date(b.createdAt) - new Date(a.createdAt),
-		);
-
-		return showAllJobs ? sorted : sorted.slice(0, 10);
-	}, [allJobs, showAllJobs]);
 
 	// Frontend search filtering
 	const filteredAllJobs = useMemo(() => {
@@ -130,9 +126,17 @@ export default function EmployerDashboard() {
 	const isLoading = jobsQ.isLoading;
 	const isError = jobsQ.isError;
 	const error = jobsQ.error;
+	const isFetching = jobsQ.isFetching;
+	const res = jobsQ.data;
 
-	if (isLoading) {
-		return <div className="p-6 text-gray-600">Loading jobs…</div>;
+	// render loading state
+	const hasData = Boolean(res?.data);
+	if ((isLoading || isFetching) && !hasData) {
+		return (
+			<div className="min-h-[60vh] flex items-center justify-center">
+				<Loading />
+			</div>
+		);
 	}
 
 	if (isError) {
@@ -152,6 +156,13 @@ export default function EmployerDashboard() {
 		).length,
 		totalApplications: null, // intentionally null to avoid N+1
 	};
+	if (!isAuthReady) {
+		return (
+			<div className="min-h-[60vh] flex items-center justify-center">
+				<Loading />
+			</div>
+		);
+	}
 
 	/* -------------------- UI -------------------- */
 	return (

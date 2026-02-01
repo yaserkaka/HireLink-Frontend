@@ -75,7 +75,7 @@ export default function JobDetails() {
 	if (!job) return <div className="px-10 py-10">Job not found</div>;
 
 	// Derived UI values
-	const paymentType = job.salary ? "Salary" : "Hourly";
+
 	const budget =
 		job.salary ?? (job.hoursPerWeek ? `${job.hoursPerWeek} hrs/week` : null);
 	const workArrangement = prettyEnum(job.jobType);
@@ -128,8 +128,7 @@ export default function JobDetails() {
 					</div>
 
 					{/* INFO ROW */}
-					<div className="grid grid-cols-2 md:grid-cols-5 gap-6 mb-10">
-						<InfoItem value={paymentType} label="Payment Type" />
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10">
 						<InfoItem value={budget} label="Budget" />
 						<InfoItem value={workArrangement} label="Work Arrangement" />
 						<InfoItem value={experienceLevel} label="Experience Level" />
