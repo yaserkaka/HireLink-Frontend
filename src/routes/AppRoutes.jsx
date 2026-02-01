@@ -11,7 +11,7 @@ const GuestRoutes = lazy(() => import("./GuardRoutes/GuestRoutes"));
 const MainLayout = lazy(() => import("../components/layouts/MainLayout"));
 const AuthLayout = lazy(() => import("../components/layouts/AuthLayOut"));
 const DashboardLayout = lazy(
-	() => import("../components/Layouts/DashboardLayout"),
+	() => import("../components/layouts/DashboardLayout"),
 );
 
 // Public Pages
