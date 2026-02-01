@@ -41,7 +41,7 @@ const FindJob = lazy(
 // 2- job details page
 const JobDetails = lazy(() => import("../features/Main/Talent/JobDetails"));
 //3- job proposal page
-const JobProposal = lazy(() => import("../features/Main/talent/JobProposal"));
+const JobProposal = lazy(() => import("../features/Main/Talent/JobProposal"));
 //4- my applications page
 const MyApplications = lazy(
 	() => import("../features/Main/Talent/MyApplications"),
@@ -60,7 +60,7 @@ const EmployerDashboard = lazy(
 	() => import("../features/Main/Employer/dashboard/Dashboard"),
 );
 const EmployerProfile = lazy(
-	() => import("../features/Main/employer/EmployerProfile"),
+	() => import("../features/Main/Employer/EmployerProfile"),
 );
 
 const EmployerAccountSettings = lazy(
